@@ -1,0 +1,3 @@
+TrustContactId,Trust,ContactName,ContactRole,ContactEmail,EscalationChannel,IsDemoContact
+TC-5001,Northshire NHS Trust,Northshire Workforce Desk,Trust Workforce Contact,northshire-workforce@example.invalid,Email,true
+TC-5002,Southvale NHS Trust,Southvale Staffing Team,Trust Staffing Contact,southvale-staffing@example.invalid,Email,true

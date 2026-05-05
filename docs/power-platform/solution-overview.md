@@ -48,7 +48,7 @@ A Power Platform solution comprising:
 
 ## Key Design Decisions
 
-1. **Canvas app over model-driven app** — A canvas app gives full control over layout and UX, which is important for a demo that needs to look polished in 45 minutes.
+1. **Canvas app over model-driven app** — A canvas app gives full control over layout and UX, which is important for the 35-minute Power Platform segment of the demo.
 2. **Dataverse over SharePoint** — Dataverse provides relational data modelling, row-level security, and audit logging out of the box.
 3. **Choice columns over separate lookup tables** — For fixed-list values (Priority, Status, Exception Type), choice columns reduce complexity without sacrificing usability.
 4. **Single solution** — All components are packaged in a single Dataverse solution (`nhsp_ShiftExceptionManagement`) for simplified deployment and demo portability.
@@ -59,7 +59,7 @@ A Power Platform solution comprising:
 |---|---|
 | 1 | The demo uses synthetic data only — no real NHS staff or patient data is used. |
 | 2 | Authentication is handled via Microsoft Entra ID; all demo users have Power Apps licences. |
-| 3 | The solution targets a single Power Platform environment (no multi-environment ALM for the demo). |
+| 3 | The live demo can be shown from one Power Platform environment, while the ALM documentation describes how Development, Test, and Demo or Production Pilot environments would be used. |
 | 4 | Trusts and wards are represented as text or choice columns rather than full reference data tables. |
 | 5 | The canvas app is designed for desktop/tablet use; mobile optimisation is out of scope for the demo. |
 

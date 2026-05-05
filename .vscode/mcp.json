@@ -1,0 +1,30 @@
+{
+  "servers": {
+    "ado": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure-devops/mcp",
+        "sk-customers",
+        "--authentication",
+        "azcli",
+        "--project",
+        "Somerset-Council",
+        "-d",
+        "work",
+        "core",
+        "work-items"
+      ],
+      "env": {
+        "LOG_LEVEL": "debug"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    }
+  }
+}

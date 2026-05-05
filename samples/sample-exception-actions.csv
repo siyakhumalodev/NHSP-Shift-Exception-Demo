@@ -1,0 +1,4 @@
+ActionId,ExceptionId,ActionType,ActionStatus,ActionTime,ActionBy,Notes
+ACT-4001,EXC-3001,Coordinator Notification,Sent,2026-05-05T09:35:00,Power Automate - NHSP Escalation Flow,Coordinator notified for high priority unfilled shift
+ACT-4002,EXC-3002,Trust Escalation,Sent,2026-05-05T10:20:00,Power Automate - NHSP Escalation Flow,Critical compliance blocker escalated to synthetic trust contact
+ACT-4003,EXC-3003,Coordinator Notification,Skipped,2026-05-05T10:30:00,Power Automate - NHSP Escalation Flow,Exception already pending trust response

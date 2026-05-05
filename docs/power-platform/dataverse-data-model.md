@@ -2,7 +2,7 @@
 
 ## Overview
 
-The data model consists of three custom Dataverse tables that mirror the operational entities in the sample data. Relationships are enforced via lookup columns to maintain referential integrity.
+The data model consists of custom Dataverse tables that mirror the operational entities in the sample data. Relationships are enforced via lookup columns to maintain referential integrity.
 
 ## Tables
 
@@ -102,6 +102,38 @@ Represents an exception raised against a shift that requires triage and resoluti
 
 ---
 
+### 4. Exception Action (`nhsp_ExceptionAction`)
+
+Represents an auditable action taken by a coordinator, manager, or Power Automate flow.
+
+| Column | Display Name | Type | Required | Notes |
+|---|---|---|---|---|
+| `nhsp_ExceptionActionId` | Exception Action ID | Text (Primary Name) | Yes | Business key, e.g. `ACT-4001` |
+| `nhsp_ShiftException` | Shift Exception | Lookup -> `nhsp_ShiftException` | Yes | Exception this action relates to |
+| `nhsp_ActionType` | Action Type | Choice | Yes | Coordinator Notification, Trust Escalation, Flow Error, Manual Update |
+| `nhsp_ActionStatus` | Action Status | Choice | Yes | Sent, Skipped, Failed, Retried, Completed |
+| `nhsp_ActionTime` | Action Time | Date and Time | Yes | When the action occurred |
+| `nhsp_ActionBy` | Action By | Text | Yes | User display name or flow service account |
+| `nhsp_Notes` | Notes | Multiline Text | No | Operational summary without patient or clinical data |
+
+---
+
+### 5. Trust Contact (`nhsp_TrustContact`)
+
+Represents synthetic or configured routing for trust escalation notifications.
+
+| Column | Display Name | Type | Required | Notes |
+|---|---|---|---|---|
+| `nhsp_TrustContactId` | Trust Contact ID | Text (Primary Name) | Yes | Business key, e.g. `TC-5001` |
+| `nhsp_Trust` | Trust | Choice | Yes | Trust this contact route supports |
+| `nhsp_ContactName` | Contact Name | Text | Yes | Team or mailbox display name, not a real person in demo data |
+| `nhsp_ContactRole` | Contact Role | Text | Yes | Workforce or staffing contact role |
+| `nhsp_ContactEmail` | Contact Email | Email | Yes | Synthetic demo address or approved environment value |
+| `nhsp_EscalationChannel` | Escalation Channel | Choice | Yes | Email, Teams, Manual |
+| `nhsp_IsDemoContact` | Is Demo Contact | Yes/No | Yes | Flags fictional contacts used for demo safety |
+
+---
+
 ## Relationships
 
 ```
@@ -109,6 +141,12 @@ Represents an exception raised against a shift that requires triage and resoluti
 │  nhsp_Shift  │───1:N──│  nhsp_ShiftException │
 │              │        │                      │
 └──────────────┘        └──────────────────────┘
+                                  │
+                                  │ 1:N
+                                  ▼
+                     ┌────────────────────────┐
+                     │ nhsp_ExceptionAction   │
+                     └────────────────────────┘
 
 ┌──────────────┐
 │  nhsp_Worker │  (No direct FK to Exception
@@ -121,6 +159,7 @@ Represents an exception raised against a shift that requires triage and resoluti
 | Relationship | Type | Parent | Child | Behaviour |
 |---|---|---|---|---|
 | Shift → Shift Exception | 1:N | `nhsp_Shift` | `nhsp_ShiftException` | Referential (restrict delete if exceptions exist) |
+| Shift Exception -> Exception Action | 1:N | `nhsp_ShiftException` | `nhsp_ExceptionAction` | Referential (restrict delete if audit actions exist) |
 
 ## Audit Configuration
 
@@ -137,3 +176,5 @@ The sample CSV files map directly to these tables:
 | `sample-shifts.csv` | `nhsp_Shift` |
 | `sample-workers.csv` | `nhsp_Worker` |
 | `sample-exceptions.csv` | `nhsp_ShiftException` |
+| `sample-exception-actions.csv` | `nhsp_ExceptionAction` |
+| `sample-trust-contacts.csv` | `nhsp_TrustContact` |

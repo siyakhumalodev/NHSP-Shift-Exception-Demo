@@ -182,13 +182,15 @@ Filter(
 | **Text scaling** | Font sizes use relative sizing; layout accommodates up to 200% zoom without horizontal scrolling. |
 | **Focus indicators** | Visible focus borders on all interactive controls. |
 
-## Demo Flow (45-minute walkthrough)
+## Demo Flow (35-minute Power Platform segment)
+
+This walkthrough supports the Power Platform portion of the wider 45-minute demo. The first 10 minutes are reserved for the Product Manager agent creating Azure Boards work items using ADO MCP.
 
 | Step | Screen | Action | Duration |
 |---|---|---|---|
-| 1 | Exception Dashboard | Show filtered view of open exceptions, explain triage process | 10 min |
-| 2 | Exception Detail | Walk through triaging EXC-3001, change status, add notes | 8 min |
-| 3 | Shift Overview | Show shift fill status, highlight gap that caused the exception | 7 min |
+| 1 | Exception Dashboard | Show filtered view of open exceptions, explain triage process | 7 min |
+| 2 | Exception Detail | Walk through triaging EXC-3001, change status, add notes | 6 min |
+| 3 | Shift Overview | Show shift fill status, highlight gap that caused the exception | 5 min |
 | 4 | Worker Availability | Find available compliant worker for the unfilled shift | 5 min |
-| 5 | Exception Dashboard | Escalate EXC-3002 (compliance blocker), show Power Automate trigger | 8 min |
-| 6 | — | Show Dataverse audit log and security roles in the admin view | 7 min |
+| 5 | Exception Dashboard | Escalate EXC-3002 (compliance blocker), show Power Automate trigger | 7 min |
+| 6 | Admin or documentation view | Show Dataverse audit log, security roles, and readiness review | 5 min |
