@@ -12,7 +12,7 @@ Represents a bank shift at a trust ward that requires one or more workers.
 
 | Column | Display Name | Type | Required | Notes |
 |---|---|---|---|---|
-| `nhsp_ShiftId` | Shift ID | Text (Primary Name) | Yes | Business key, e.g. `SFT-1001` |
+| `nhsp_ShiftReference` | Shift ID | Text (Primary Name) | Yes | Business key, e.g. `SFT-1001`. Uses a distinct logical name because Dataverse reserves `nhsp_shiftid` as the table primary key. |
 | `nhsp_Trust` | Trust | Choice | Yes | e.g. Northshire NHS Trust, Southvale NHS Trust |
 | `nhsp_Ward` | Ward | Text | Yes | e.g. Emergency Department, Acute Medical Unit |
 | `nhsp_Role` | Role | Choice | Yes | Registered Nurse, Healthcare Assistant |
@@ -43,7 +43,7 @@ Represents a bank worker available for shift assignment.
 
 | Column | Display Name | Type | Required | Notes |
 |---|---|---|---|---|
-| `nhsp_WorkerId` | Worker ID | Text (Primary Name) | Yes | Business key, e.g. `WRK-2001` |
+| `nhsp_WorkerReference` | Worker ID | Text (Primary Name) | Yes | Business key, e.g. `WRK-2001`. Uses a distinct logical name because Dataverse reserves `nhsp_workerid` as the table primary key. |
 | `nhsp_FullName` | Full Name | Text | Yes | Worker's display name |
 | `nhsp_Role` | Role | Choice | Yes | Registered Nurse, Healthcare Assistant |
 | `nhsp_ComplianceStatus` | Compliance Status | Choice | Yes | Compliant, Training Expired, DBS Review Required |
@@ -67,7 +67,7 @@ Represents an exception raised against a shift that requires triage and resoluti
 
 | Column | Display Name | Type | Required | Notes |
 |---|---|---|---|---|
-| `nhsp_ExceptionId` | Exception ID | Text (Primary Name) | Yes | Business key, e.g. `EXC-3001` |
+| `nhsp_ExceptionReference` | Exception ID | Text (Primary Name) | Yes | Business key, e.g. `EXC-3001`. Uses a distinct logical name because Dataverse reserves `nhsp_shiftexceptionid` as the table primary key. |
 | `nhsp_Shift` | Shift | Lookup → `nhsp_Shift` | Yes | The shift this exception relates to |
 | `nhsp_ExceptionType` | Exception Type | Choice | Yes | Unfilled Shift, Compliance Blocker, Urgent Staffing Request |
 | `nhsp_Priority` | Priority | Choice | Yes | Critical, High, Medium, Low |
@@ -108,7 +108,7 @@ Represents an auditable action taken by a coordinator, manager, or Power Automat
 
 | Column | Display Name | Type | Required | Notes |
 |---|---|---|---|---|
-| `nhsp_ExceptionActionId` | Exception Action ID | Text (Primary Name) | Yes | Business key, e.g. `ACT-4001` |
+| `nhsp_ExceptionActionReference` | Exception Action ID | Text (Primary Name) | Yes | Business key, e.g. `ACT-4001`. Uses a distinct logical name because Dataverse reserves `nhsp_exceptionactionid` as the table primary key. |
 | `nhsp_ShiftException` | Shift Exception | Lookup -> `nhsp_ShiftException` | Yes | Exception this action relates to |
 | `nhsp_ActionType` | Action Type | Choice | Yes | Coordinator Notification, Trust Escalation, Flow Error, Manual Update |
 | `nhsp_ActionStatus` | Action Status | Choice | Yes | Sent, Skipped, Failed, Retried, Completed |
@@ -124,7 +124,7 @@ Represents synthetic or configured routing for trust escalation notifications.
 
 | Column | Display Name | Type | Required | Notes |
 |---|---|---|---|---|
-| `nhsp_TrustContactId` | Trust Contact ID | Text (Primary Name) | Yes | Business key, e.g. `TC-5001` |
+| `nhsp_TrustContactReference` | Trust Contact ID | Text (Primary Name) | Yes | Business key, e.g. `TC-5001`. Uses a distinct logical name because Dataverse reserves `nhsp_trustcontactid` as the table primary key. |
 | `nhsp_Trust` | Trust | Choice | Yes | Trust this contact route supports |
 | `nhsp_ContactName` | Contact Name | Text | Yes | Team or mailbox display name, not a real person in demo data |
 | `nhsp_ContactRole` | Contact Role | Text | Yes | Workforce or staffing contact role |
