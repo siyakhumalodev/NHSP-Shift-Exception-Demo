@@ -1,10 +1,10 @@
 ---
-description: "Use when: creating Azure Boards work items for the NHS Professionals Shift Exception Management demo with ADO MCP."
+description: "Use when: creating GitHub Issues for the NHS Professionals Shift Exception Management demo backlog."
 ---
 
-# Create Azure Boards Work Items
+# Create GitHub Issues
 
-Using the NHS Professionals Bank Shift Exception Management scenario, create Azure Boards work items for the Power Platform delivery backlog.
+Using the NHS Professionals Bank Shift Exception Management scenario, create GitHub Issues for the Power Platform delivery backlog.
 
 Use the repository context from:
 
@@ -16,7 +16,7 @@ Use the repository context from:
 - `samples/sample-workers.csv`
 - `samples/sample-exceptions.csv`
 
-Create work items that cover:
+Create issues that cover:
 
 1. Exception dashboard and filtering
 2. Dataverse table design for shifts, workers, exceptions, actions, and trust contacts
@@ -29,10 +29,10 @@ Create work items that cover:
 9. Demo data preparation
 10. Solution review before customer demonstration
 
-For each work item, include:
+For each issue, include:
 
 - Title
-- Work item type, such as Epic, Feature, User Story, or Task
+- Suggested labels, such as `power-platform`, `dataverse`, `power-apps`, `power-automate`, `security`, `accessibility`, `alm`, or `demo`
 - Business context
 - User need
 - Acceptance criteria

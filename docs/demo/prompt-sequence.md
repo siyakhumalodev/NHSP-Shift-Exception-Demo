@@ -8,7 +8,7 @@ Use this sequence to keep the 35-minute Power Platform segment focused. Each pro
 
 | Order | Prompt File | Intended Output | Presenter Note |
 | --- | --- | --- | --- |
-| 1 | `.github/prompts/create-ado-work-items.prompt.md` | Azure Boards backlog items | Use during the first 10 minutes with ADO MCP |
+| 1 | `.github/prompts/create-github-issues.prompt.md` | GitHub Issues backlog items | Use during the first 10 minutes with GitHub |
 | 2 | `.github/prompts/create-power-platform-design.prompt.md` | Solution overview, Dataverse model, canvas screens, security model | Show that Copilot reads samples and instructions |
 | 3 | `.github/prompts/generate-power-fx-formulas.prompt.md` | Practical Power Fx formula examples | Emphasise assumptions, readable logic, and testability |
 | 4 | `.github/prompts/generate-flow-design.prompt.md` | Escalation flow design | Emphasise audit records, retries, and safe notification content |
@@ -19,7 +19,7 @@ Use this sequence to keep the 35-minute Power Platform segment focused. Each pro
 Use these in Copilot Chat, adjusting phrasing if needed for the environment.
 
 ```text
-Follow instructions in #prompt:create-ado-work-items.prompt.md
+Follow instructions in #prompt:create-github-issues.prompt.md
 ```
 
 ```text
@@ -44,7 +44,7 @@ Follow instructions in #prompt:review-power-platform-solution.prompt.md
 | --- | --- |
 | Running behind | Generate only one or two artefacts, then show existing docs for the rest |
 | Output is too broad | Ask Copilot to focus on one file or one section |
-| Audience is product-heavy | Spend more time on requirements, journey, and Azure Boards backlog |
+| Audience is product-heavy | Spend more time on requirements, journey, and GitHub Issues backlog |
 | Audience is technical | Spend more time on Dataverse, security, flow reliability, and ALM |
 
 ## Review Checklist Before Starting

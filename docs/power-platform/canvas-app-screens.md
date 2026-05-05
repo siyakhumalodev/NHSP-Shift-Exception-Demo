@@ -184,7 +184,7 @@ Filter(
 
 ## Demo Flow (35-minute Power Platform segment)
 
-This walkthrough supports the Power Platform portion of the wider 45-minute demo. The first 10 minutes are reserved for the Product Manager agent creating Azure Boards work items using ADO MCP.
+This walkthrough supports the Power Platform portion of the wider 45-minute demo. The first 10 minutes are reserved for the Product Manager agent creating GitHub Issues for the delivery backlog.
 
 | Step | Screen | Action | Duration |
 |---|---|---|---|

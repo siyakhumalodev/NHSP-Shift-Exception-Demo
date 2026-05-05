@@ -10,9 +10,9 @@ This repository supports a demonstration of GitHub Copilot and Power Platform de
 | --- | --- |
 | 1 | All trusts, wards, workers, shifts, exceptions, contacts, and action records are fictional. |
 | 2 | The scenario is limited to operational workforce coordination. It does not include patient data or clinical decisions. |
-| 3 | Azure Boards work items are created in the first 10 minutes using ADO MCP. |
+| 3 | GitHub Issues are created in the first 10 minutes for the delivery backlog. |
 | 4 | GitHub Copilot is used during the remaining 35 minutes to create or refine Power Platform delivery artefacts. |
-| 5 | The target architecture is Power Apps canvas app, Dataverse, Power Automate, GitHub, and Azure Boards. |
+| 5 | The target architecture is Power Apps canvas app, Dataverse, Power Automate, and GitHub. |
 | 6 | The demo focuses on delivery acceleration, governance thinking, and quality review, not a complete built app. |
 
 ## Security Boundary

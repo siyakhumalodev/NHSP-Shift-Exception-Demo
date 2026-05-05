@@ -27,7 +27,7 @@ Operations coordinators need to see the most urgent exceptions first, understand
 | Operations Coordinator | Quickly identify exceptions requiring action | Can filter to Critical and High exceptions starting soon |
 | Compliance Officer | Review blockers without unnecessary personal data | Can see compliance status and update operational notes |
 | Operations Manager | Monitor escalation and audit readiness | Can see unresolved escalations and action history |
-| Product Manager | Convert the scenario into backlog items | Azure Boards work items cover user value and acceptance criteria |
+| Product Manager | Convert the scenario into backlog items | GitHub Issues cover user value and acceptance criteria |
 
 ## Functional Requirements
 
@@ -62,7 +62,7 @@ Operations coordinators need to see the most urgent exceptions first, understand
 | 1 | The demo uses fictional trusts, wards, workers, shifts, and contact addresses. |
 | 2 | The app is a Power Apps canvas app backed by Dataverse. |
 | 3 | Power Automate handles escalation notifications and audit action records. |
-| 4 | Azure Boards work items are created in the first 10 minutes using ADO MCP. |
+| 4 | GitHub Issues are created in the first 10 minutes for the delivery backlog. |
 | 5 | The remaining 35 minutes show GitHub Copilot supporting Power Platform delivery artefacts. |
 | 6 | The demo explains Power Platform concepts in simple terms for mixed technical and product audiences. |
 
