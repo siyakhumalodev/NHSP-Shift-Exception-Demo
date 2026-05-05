@@ -1,0 +1,4 @@
+ExceptionId,ShiftId,ExceptionType,Priority,Status,CreatedTime,Owner,EscalationStatus
+EXC-3001,SFT-1001,Unfilled Shift,High,Open,2026-05-05T09:30:00,Ops Coordinator,Not Escalated
+EXC-3002,SFT-1002,Compliance Blocker,Critical,Open,2026-05-05T10:00:00,Compliance Team,Escalated
+EXC-3003,SFT-1004,Urgent Staffing Request,High,In Progress,2026-05-05T10:15:00,Ops Coordinator,Pending Trust Response

@@ -1,0 +1,5 @@
+WorkerId,FullName,Role,ComplianceStatus,AvailabilityStatus,PreferredTrust
+WRK-2001,Aisha Khan,Registered Nurse,Compliant,Available,Northshire NHS Trust
+WRK-2002,Daniel Hughes,Healthcare Assistant,Training Expired,Available,Northshire NHS Trust
+WRK-2003,Meera Patel,Registered Nurse,DBS Review Required,Unavailable,Southvale NHS Trust
+WRK-2004,Thomas Green,Healthcare Assistant,Compliant,Available,Southvale NHS Trust

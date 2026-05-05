@@ -1,0 +1,5 @@
+ShiftId,Trust,Ward,Role,StartTime,EndTime,Status,RequiredWorkers,FilledWorkers
+SFT-1001,Northshire NHS Trust,Emergency Department,Registered Nurse,2026-05-06T07:00:00,2026-05-06T19:00:00,Open,4,3
+SFT-1002,Northshire NHS Trust,Acute Medical Unit,Healthcare Assistant,2026-05-06T08:00:00,2026-05-06T16:00:00,Open,3,2
+SFT-1003,Southvale NHS Trust,Paediatrics,Registered Nurse,2026-05-06T12:00:00,2026-05-06T20:00:00,Filled,2,2
+SFT-1004,Southvale NHS Trust,Surgical Ward,Healthcare Assistant,2026-05-06T14:00:00,2026-05-06T22:00:00,Open,2,1
