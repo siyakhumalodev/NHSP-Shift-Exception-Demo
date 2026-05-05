@@ -28,7 +28,7 @@ When generating content:
 - Dataverse for structured data
 - Power Automate for escalation workflows
 - GitHub for source control, documentation, review, and ALM artefacts
-- Azure Boards for work item planning
+- GitHub Issues for work item planning
 
 ## Output Expectations
 
