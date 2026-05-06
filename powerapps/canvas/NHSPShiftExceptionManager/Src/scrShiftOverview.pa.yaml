@@ -1,0 +1,148 @@
+Screens:
+  scrShiftOverview:
+    Properties:
+      Fill: =ThemeCanvas
+    Children:
+      - navShiftOverview:
+          Control: Gallery
+          Variant: verticalGallery
+          Properties:
+            AccessibleLabel: ="Main navigation"
+            Items: =Table({Title:"Exceptions", Target:scrExceptionDashboard}, {Title:"Shifts", Target:scrShiftOverview}, {Title:"Workers", Target:scrWorkerAvailability})
+            X: =0
+            Y: =0
+            Width: =170
+            Height: =Parent.Height
+            Fill: =ThemePrimary
+          Children:
+            - lblShiftNavItem:
+                Control: Label
+                Properties:
+                  Text: =ThisItem.Title
+                  Color: =Color.White
+                  FontWeight: =If(ThisItem.Target = App.ActiveScreen, FontWeight.Bold, FontWeight.Normal)
+                  OnSelect: =Navigate(ThisItem.Target, ScreenTransition.Fade)
+                  AccessibleLabel: ="Navigate to " & ThisItem.Title
+      - lblShiftHeader:
+          Control: Label
+          Properties:
+            Text: ="Shift Overview"
+            X: =190
+            Y: =24
+            Width: =520
+            Height: =48
+            Size: =28
+            FontWeight: =FontWeight.Semibold
+            Color: =ThemeText
+      - lblShiftUser:
+          Control: Label
+          Properties:
+            Text: =User().FullName
+            X: =Parent.Width - 330
+            Y: =28
+            Width: =300
+            Height: =40
+            Align: =Align.Right
+            Color: =ThemeText
+      - drpShiftTrust:
+          Control: Dropdown
+          Properties:
+            AccessibleLabel: ="Filter shifts by trust"
+            Items: =colTrustOptions
+            Default: ="All"
+            X: =190
+            Y: =96
+            Width: =230
+      - dteShiftDate:
+          Control: DatePicker
+          Properties:
+            AccessibleLabel: ="Filter shifts by date"
+            DefaultDate: =Today()
+            X: =438
+            Y: =96
+            Width: =190
+      - galShifts:
+          Control: Gallery
+          Variant: verticalGallery
+          Properties:
+            AccessibleLabel: ="Upcoming shifts with fill status"
+            X: =190
+            Y: =152
+            Width: =Parent.Width - 220
+            Height: =Parent.Height - 180
+            TemplateSize: =128
+            Items: |
+              =SortByColumns(
+                  Filter(
+                      nhsp_Shifts,
+                      drpShiftTrust.Selected.Value = "All" Or nhsp_Trust.Value = drpShiftTrust.Selected.Value,
+                      DateValue(nhsp_StartTime) = dteShiftDate.SelectedDate
+                  ),
+                  "nhsp_starttime",
+                  SortOrder.Ascending
+              )
+          Children:
+            - conShiftCard:
+                Control: GroupContainer
+                Variant: manualLayoutContainer
+                Properties:
+                  X: =0
+                  Y: =0
+                  Width: =Parent.TemplateWidth
+                  Height: =112
+                  Fill: =If(nhsp_Status.Value = "Open" And IsNearStart(nhsp_StartTime), ColorValue("#FFF4F2"), Color.White)
+                Children:
+                  - lblShiftReference:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_ShiftReference & " | " & ThisItem.nhsp_Trust.Value & " | " & ThisItem.nhsp_Ward
+                        X: =20
+                        Y: =12
+                        Width: =620
+                        Height: =30
+                        FontWeight: =FontWeight.Semibold
+                        Color: =ThemeText
+                        AccessibleLabel: ="Shift " & ThisItem.nhsp_ShiftReference
+                  - lblShiftTiming:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_Role.Value & " | " & Text(ThisItem.nhsp_StartTime, "dd mmm hh:mm") & " to " & Text(ThisItem.nhsp_EndTime, "hh:mm")
+                        X: =20
+                        Y: =44
+                        Width: =540
+                        Height: =28
+                        Color: =ColorValue("#475467")
+                  - lblShiftFill:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_FilledWorkers & " / " & ThisItem.nhsp_RequiredWorkers & " filled"
+                        X: =20
+                        Y: =74
+                        Width: =140
+                        Height: =26
+                        Color: =ThemeText
+                  - shpShiftProgressTrack:
+                      Control: Rectangle
+                      Properties:
+                        X: =180
+                        Y: =80
+                        Width: =260
+                        Height: =14
+                        Fill: =ColorValue("#D0D5DD")
+                  - shpShiftProgressFill:
+                      Control: Rectangle
+                      Properties:
+                        X: =180
+                        Y: =80
+                        Width: =260 * FillRatio(ThisItem.nhsp_FilledWorkers, ThisItem.nhsp_RequiredWorkers)
+                        Height: =14
+                        Fill: =If(FillRatio(ThisItem.nhsp_FilledWorkers, ThisItem.nhsp_RequiredWorkers) = 1, ColorValue("#027A48"), If(ThisItem.nhsp_FilledWorkers = 0, ColorValue("#B42318"), ColorValue("#B54708")))
+                  - lblShiftRisk:
+                      Control: Label
+                      Properties:
+                        Text: =If(ThisItem.nhsp_Status.Value = "Open" And IsNearStart(ThisItem.nhsp_StartTime), "Starts within 12 hours", ThisItem.nhsp_Status.Value)
+                        X: =470
+                        Y: =72
+                        Width: =240
+                        Height: =28
+                        Color: =If(ThisItem.nhsp_Status.Value = "Open" And IsNearStart(ThisItem.nhsp_StartTime), ColorValue("#B42318"), ThemeText)

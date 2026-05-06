@@ -1,0 +1,198 @@
+Screens:
+  scrExceptionDetail:
+    Properties:
+      Fill: =ThemeCanvas
+      OnVisible: =If(IsBlank(varSelectedException), Set(varSelectedException, First(nhsp_ShiftExceptions)))
+    Children:
+      - navExceptionDetail:
+          Control: Gallery
+          Variant: verticalGallery
+          Properties:
+            AccessibleLabel: ="Main navigation"
+            Items: =Table({Title:"Exceptions", Target:scrExceptionDashboard}, {Title:"Shifts", Target:scrShiftOverview}, {Title:"Workers", Target:scrWorkerAvailability})
+            X: =0
+            Y: =0
+            Width: =170
+            Height: =Parent.Height
+            Fill: =ThemePrimary
+          Children:
+            - lblDetailNavItem:
+                Control: Label
+                Properties:
+                  Text: =ThisItem.Title
+                  Color: =Color.White
+                  FontWeight: =If(ThisItem.Target = App.ActiveScreen, FontWeight.Bold, FontWeight.Normal)
+                  OnSelect: =Navigate(ThisItem.Target, ScreenTransition.Fade)
+                  AccessibleLabel: ="Navigate to " & ThisItem.Title
+      - lblExceptionDetailHeader:
+          Control: Label
+          Properties:
+            Text: ="Exception Detail"
+            X: =190
+            Y: =24
+            Width: =520
+            Height: =48
+            Size: =28
+            FontWeight: =FontWeight.Semibold
+            Color: =ThemeText
+      - btnBackToDashboard:
+          Control: ButtonCanvas
+          Properties:
+            Text: ="Back"
+            AccessibleLabel: ="Return to exception dashboard"
+            X: =Parent.Width - 260
+            Y: =32
+            Width: =96
+            OnSelect: =Navigate(scrExceptionDashboard, ScreenTransition.Fade)
+      - btnSaveException:
+          Control: ButtonCanvas
+          Properties:
+            Text: ="Save"
+            AccessibleLabel: ="Save selected exception changes"
+            X: =Parent.Width - 148
+            Y: =32
+            Width: =96
+            OnSelect: |
+              =IfError(
+                  Patch(
+                      nhsp_ShiftExceptions,
+                      varSelectedException,
+                      {
+                          nhsp_Priority: LookUp(Choices(nhsp_ShiftExceptions.nhsp_Priority), Value = drpDetailPriority.Selected.Value),
+                          nhsp_Status: LookUp(Choices(nhsp_ShiftExceptions.nhsp_Status), Value = drpDetailStatus.Selected.Value),
+                          nhsp_EscalationStatus: LookUp(Choices(nhsp_ShiftExceptions.nhsp_EscalationStatus), Value = drpDetailEscalation.Selected.Value),
+                          nhsp_ResolutionNotes: txtDetailResolutionNotes.Text,
+                          nhsp_ResolvedTime: If(drpDetailStatus.Selected.Value in ["Resolved", "Closed"], Now(), Blank())
+                      }
+                  ),
+                  Notify("The exception could not be saved. Check your connection and try again.", NotificationType.Error),
+                  Notify("Exception saved.", NotificationType.Success);
+                  Refresh(nhsp_ShiftExceptions);
+                  Navigate(scrExceptionDashboard, ScreenTransition.Fade)
+              )
+      - conExceptionForm:
+          Control: GroupContainer
+          Variant: manualLayoutContainer
+          Properties:
+            X: =190
+            Y: =104
+            Width: =Parent.Width - 220
+            Height: =Parent.Height - 132
+            Fill: =Color.White
+          Children:
+            - lblDetailExceptionReference:
+                Control: Label
+                Properties:
+                  Text: |
+                    ="Exception ID: " & varSelectedException.nhsp_ExceptionReference
+                  X: =24
+                  Y: =24
+                  Width: =420
+                  Height: =32
+                  FontWeight: =FontWeight.Semibold
+                  Color: =ThemeText
+            - lblDetailExceptionType:
+                Control: Label
+                Properties:
+                  Text: |
+                    ="Exception Type: " & varSelectedException.nhsp_ExceptionType.Value
+                  X: =24
+                  Y: =68
+                  Width: =420
+                  Height: =30
+                  Color: =ThemeText
+            - drpDetailPriority:
+                Control: Dropdown
+                Properties:
+                  AccessibleLabel: ="Priority"
+                  Items: =Filter(colPriorityOptions, Value <> "All")
+                  Default: =varSelectedException.nhsp_Priority.Value
+                  X: =24
+                  Y: =124
+                  Width: =220
+            - drpDetailStatus:
+                Control: Dropdown
+                Properties:
+                  AccessibleLabel: ="Status"
+                  Items: =Filter(colExceptionStatusOptions, Value <> "All")
+                  Default: =varSelectedException.nhsp_Status.Value
+                  X: =268
+                  Y: =124
+                  Width: =220
+            - drpDetailEscalation:
+                Control: Dropdown
+                Properties:
+                  AccessibleLabel: ="Escalation status"
+                  Items: =colEscalationStatusOptions
+                  Default: =varSelectedException.nhsp_EscalationStatus.Value
+                  X: =512
+                  Y: =124
+                  Width: =260
+            - lblRelatedShift:
+                Control: Label
+                Properties:
+                  Text: ="Related Shift"
+                  X: =24
+                  Y: =196
+                  Width: =300
+                  Height: =30
+                  FontWeight: =FontWeight.Semibold
+                  Color: =ThemeText
+            - lblRelatedShiftContext:
+                Control: Label
+                Properties:
+                  Text: |
+                    =varSelectedException.nhsp_Shift.nhsp_ShiftReference & " | " & varSelectedException.nhsp_Shift.nhsp_Trust.Value & " | " & varSelectedException.nhsp_Shift.nhsp_Ward & " | " & varSelectedException.nhsp_Shift.nhsp_Role.Value & Char(10) & Text(varSelectedException.nhsp_Shift.nhsp_StartTime, "dd mmm hh:mm") & " to " & Text(varSelectedException.nhsp_Shift.nhsp_EndTime, "hh:mm") & " | Fill: " & varSelectedException.nhsp_Shift.nhsp_FilledWorkers & " / " & varSelectedException.nhsp_Shift.nhsp_RequiredWorkers
+                  X: =24
+                  Y: =232
+                  Width: =760
+                  Height: =70
+                  Color: =ThemeText
+            - txtDetailResolutionNotes:
+                Control: TextInput
+                Properties:
+                  AccessibleLabel: ="Resolution notes. Keep notes operational and do not enter patient data or real staff personal data."
+                  HintText: ="Operational resolution notes"
+                  Mode: =TextMode.MultiLine
+                  Default: =varSelectedException.nhsp_ResolutionNotes
+                  X: =24
+                  Y: =330
+                  Width: =Parent.Width - 48
+                  Height: =150
+            - lblResolvedTime:
+                Control: Label
+                Properties:
+                  Text: |
+                    ="Resolved Time: " & If(IsBlank(varSelectedException.nhsp_ResolvedTime), "Not resolved", Text(varSelectedException.nhsp_ResolvedTime, "dd mmm yyyy hh:mm"))
+                  X: =24
+                  Y: =504
+                  Width: =420
+                  Height: =32
+                  Color: =ThemeText
+            - btnDetailEscalate:
+                Control: ButtonCanvas
+                Properties:
+                  Text: ="Escalate"
+                  AccessibleLabel: ="Mark exception as escalated"
+                  X: =24
+                  Y: =560
+                  Width: =128
+                  OnSelect: =Reset(drpDetailEscalation); Notify("Set escalation status to Escalated before saving.", NotificationType.Information)
+            - btnDetailResolve:
+                Control: ButtonCanvas
+                Properties:
+                  Text: ="Resolve"
+                  AccessibleLabel: ="Set status to resolved before saving"
+                  X: =168
+                  Y: =560
+                  Width: =128
+                  OnSelect: =Notify("Set status to Resolved and add operational notes before saving.", NotificationType.Information)
+            - btnDetailCancel:
+                Control: ButtonCanvas
+                Properties:
+                  Text: ="Cancel"
+                  AccessibleLabel: ="Cancel changes and return to dashboard"
+                  X: =312
+                  Y: =560
+                  Width: =128
+                  OnSelect: =Navigate(scrExceptionDashboard, ScreenTransition.Fade)

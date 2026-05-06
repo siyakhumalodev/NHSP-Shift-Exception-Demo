@@ -1,0 +1,299 @@
+Screens:
+  scrExceptionDashboard:
+    Properties:
+      Fill: =ThemeCanvas
+      OnVisible: |
+        =If(IsBlank(varSelectedException), Set(varSelectedException, First(galExceptions.AllItems)))
+    Children:
+      - conDashboardShell:
+          Control: GroupContainer
+          Variant: manualLayoutContainer
+          Properties:
+            X: =0
+            Y: =0
+            Width: =Parent.Width
+            Height: =Parent.Height
+          Children:
+            - navDashboard:
+                Control: Gallery
+                Variant: verticalGallery
+                Properties:
+                  AccessibleLabel: ="Main navigation"
+                  Items: =Table({Title:"Exceptions", Target:scrExceptionDashboard}, {Title:"Shifts", Target:scrShiftOverview}, {Title:"Workers", Target:scrWorkerAvailability})
+                  X: =0
+                  Y: =0
+                  Width: =170
+                  Height: =Parent.Height
+                  Fill: =ThemePrimary
+                Children:
+                  - lblDashboardNavItem:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.Title
+                        Color: =Color.White
+                        FontWeight: =If(ThisItem.Target = App.ActiveScreen, FontWeight.Bold, FontWeight.Normal)
+                        OnSelect: =Navigate(ThisItem.Target, ScreenTransition.Fade)
+                        AccessibleLabel: ="Navigate to " & ThisItem.Title
+            - lblDashboardHeader:
+                Control: Label
+                Properties:
+                  Text: ="Shift Exception Dashboard"
+                  X: =190
+                  Y: =24
+                  Width: =760
+                  Height: =48
+                  Size: =28
+                  FontWeight: =FontWeight.Semibold
+                  Color: =ThemeText
+            - lblDashboardUser:
+                Control: Label
+                Properties:
+                  Text: =User().FullName
+                  X: =Parent.Width - 330
+                  Y: =28
+                  Width: =300
+                  Height: =40
+                  Align: =Align.Right
+                  Color: =ThemeText
+            - drpPriority:
+                Control: Dropdown
+                Properties:
+                  AccessibleLabel: ="Filter exceptions by priority"
+                  Items: =colPriorityOptions
+                  Default: ="All"
+                  X: =190
+                  Y: =96
+                  Width: =170
+            - drpExceptionType:
+                Control: Dropdown
+                Properties:
+                  AccessibleLabel: ="Filter exceptions by type"
+                  Items: =colExceptionTypeOptions
+                  Default: ="All"
+                  X: =374
+                  Y: =96
+                  Width: =230
+            - drpStatus:
+                Control: Dropdown
+                Properties:
+                  AccessibleLabel: ="Filter exceptions by status"
+                  Items: =colExceptionStatusOptions
+                  Default: ="All"
+                  X: =618
+                  Y: =96
+                  Width: =180
+            - drpTrust:
+                Control: Dropdown
+                Properties:
+                  AccessibleLabel: ="Filter exceptions by trust"
+                  Items: =colTrustOptions
+                  Default: ="All"
+                  X: =812
+                  Y: =96
+                  Width: =230
+            - galExceptions:
+                Control: Gallery
+                Variant: verticalGallery
+                Properties:
+                  AccessibleLabel: ="Shift exceptions matching selected filters"
+                  X: =190
+                  Y: =152
+                  Width: =420
+                  Height: =Parent.Height - 180
+                  TemplateSize: =112
+                  Items: |
+                    =SortByColumns(
+                        AddColumns(
+                            Filter(
+                                nhsp_ShiftExceptions,
+                                nhsp_Status.Value in ["Open", "In Progress"],
+                                drpTrust.Selected.Value = "All" Or nhsp_Shift.nhsp_Trust.Value = drpTrust.Selected.Value,
+                                drpPriority.Selected.Value = "All" Or nhsp_Priority.Value = drpPriority.Selected.Value,
+                                drpStatus.Selected.Value = "All" Or nhsp_Status.Value = drpStatus.Selected.Value,
+                                drpExceptionType.Selected.Value = "All" Or nhsp_ExceptionType.Value = drpExceptionType.Selected.Value
+                            ),
+                            SortPriority,
+                            PriorityRank(nhsp_Priority.Value)
+                        ),
+                        "SortPriority",
+                        SortOrder.Ascending,
+                        "nhsp_createdtime",
+                        SortOrder.Ascending
+                    )
+                  OnSelect: =Set(varSelectedException, ThisItem)
+                Children:
+                  - lblExceptionReference:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_ExceptionReference
+                        X: =16
+                        Y: =10
+                        Width: =130
+                        Height: =28
+                        FontWeight: =FontWeight.Semibold
+                        Color: =ThemeText
+                        AccessibleLabel: ="Exception " & ThisItem.nhsp_ExceptionReference
+                  - lblExceptionSummary:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_ExceptionType.Value & " | " & ThisItem.nhsp_Priority.Value
+                        X: =16
+                        Y: =40
+                        Width: =300
+                        Height: =26
+                        Color: =ThemeText
+                  - lblExceptionTrust:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_Shift.nhsp_Trust.Value & " | " & ThisItem.nhsp_Status.Value
+                        X: =16
+                        Y: =68
+                        Width: =320
+                        Height: =26
+                        Color: =ColorValue("#475467")
+                  - shpPriorityMarker:
+                      Control: Rectangle
+                      Properties:
+                        X: =0
+                        Y: =0
+                        Width: =6
+                        Height: =Parent.TemplateHeight
+                        Fill: =PriorityFill(ThisItem.nhsp_Priority.Value)
+            - lblEmptyState:
+                Control: Label
+                Properties:
+                  Visible: =IsEmpty(galExceptions.AllItems)
+                  Live: =Live.Polite
+                  Text: |
+                    =If(
+                        drpTrust.Selected.Value = "All" And drpPriority.Selected.Value = "All" And drpStatus.Selected.Value = "All" And drpExceptionType.Selected.Value = "All",
+                        "There are no open shift exceptions to review.",
+                        "No shift exceptions match the selected filters. Adjust the filters to widen the list."
+                    )
+                  X: =210
+                  Y: =220
+                  Width: =360
+                  Height: =80
+                  Color: =ThemeText
+            - conExceptionDetail:
+                Control: GroupContainer
+                Variant: manualLayoutContainer
+                Properties:
+                  X: =640
+                  Y: =152
+                  Width: =Parent.Width - 670
+                  Height: =Parent.Height - 180
+                  Fill: =Color.White
+                Children:
+                  - lblDetailTitle:
+                      Control: Label
+                      Properties:
+                        Text: |
+                          ="Exception ID: " & Coalesce(varSelectedException.nhsp_ExceptionReference, "Select an exception")
+                        X: =24
+                        Y: =20
+                        Width: =420
+                        Height: =36
+                        Size: =22
+                        FontWeight: =FontWeight.Semibold
+                        Color: =ThemeText
+                  - lblDetailShift:
+                      Control: Label
+                      Properties:
+                        Text: |
+                          ="Shift: " & varSelectedException.nhsp_Shift.nhsp_ShiftReference
+                        X: =24
+                        Y: =70
+                        Width: =420
+                        Height: =28
+                        Color: =ThemeText
+                  - lblDetailContext:
+                      Control: Label
+                      Properties:
+                        Text: =varSelectedException.nhsp_Shift.nhsp_Trust.Value & " | " & varSelectedException.nhsp_Shift.nhsp_Ward & " | " & varSelectedException.nhsp_Shift.nhsp_Role.Value
+                        X: =24
+                        Y: =104
+                        Width: =520
+                        Height: =28
+                        Color: =ThemeText
+                  - lblDetailStatus:
+                      Control: Label
+                      Properties:
+                        Text: |
+                          ="Type: " & varSelectedException.nhsp_ExceptionType.Value & Char(10) & "Priority: " & varSelectedException.nhsp_Priority.Value & Char(10) & "Status: " & varSelectedException.nhsp_Status.Value & Char(10) & "Escalation: " & varSelectedException.nhsp_EscalationStatus.Value
+                        X: =24
+                        Y: =150
+                        Width: =460
+                        Height: =124
+                        Color: =ThemeText
+                  - drpChangeStatus:
+                      Control: Dropdown
+                      Properties:
+                        AccessibleLabel: ="Change selected exception status"
+                        Items: =Filter(colExceptionStatusOptions, Value <> "All")
+                        Default: =Coalesce(varSelectedException.nhsp_Status.Value, "Open")
+                        X: =24
+                        Y: =300
+                        Width: =220
+                  - txtResolutionNotes:
+                      Control: TextInput
+                      Properties:
+                        AccessibleLabel: ="Resolution notes. Use operational workforce notes only. Do not enter patient data or real staff personal data."
+                        HintText: ="Operational resolution notes"
+                        Mode: =TextMode.MultiLine
+                        Default: =varSelectedException.nhsp_ResolutionNotes
+                        X: =24
+                        Y: =356
+                        Width: =Parent.Width - 48
+                        Height: =120
+                  - btnViewFullDetails:
+                      Control: ButtonCanvas
+                      Properties:
+                        Text: ="View full details"
+                        AccessibleLabel: ="Open full detail view for selected exception"
+                        X: =24
+                        Y: =500
+                        Width: =160
+                        OnSelect: =Navigate(scrExceptionDetail, ScreenTransition.Fade)
+                  - btnEscalate:
+                      Control: ButtonCanvas
+                      Properties:
+                        Text: ="Escalate"
+                        AccessibleLabel: ="Escalate selected shift exception"
+                        X: =200
+                        Y: =500
+                        Width: =120
+                        OnSelect: |
+                          =IfError(
+                              Patch(
+                                  nhsp_ShiftExceptions,
+                                  varSelectedException,
+                                  {nhsp_EscalationStatus: LookUp(Choices(nhsp_ShiftExceptions.nhsp_EscalationStatus), Value = "Escalated")}
+                              ),
+                              Notify("The exception could not be escalated. Check your connection and try again.", NotificationType.Error),
+                              Notify("Exception escalated.", NotificationType.Success);
+                              Refresh(nhsp_ShiftExceptions)
+                          )
+                  - btnResolve:
+                      Control: ButtonCanvas
+                      Properties:
+                        Text: ="Resolve"
+                        AccessibleLabel: ="Resolve selected shift exception"
+                        X: =336
+                        Y: =500
+                        Width: =120
+                        OnSelect: |
+                          =IfError(
+                              Patch(
+                                  nhsp_ShiftExceptions,
+                                  varSelectedException,
+                                  {
+                                      nhsp_Status: LookUp(Choices(nhsp_ShiftExceptions.nhsp_Status), Value = "Resolved"),
+                                      nhsp_ResolutionNotes: txtResolutionNotes.Text,
+                                      nhsp_ResolvedTime: Now()
+                                  }
+                              ),
+                              Notify("The exception could not be resolved. Check your connection and try again.", NotificationType.Error),
+                              Notify("Exception resolved.", NotificationType.Success);
+                              Refresh(nhsp_ShiftExceptions)
+                          )

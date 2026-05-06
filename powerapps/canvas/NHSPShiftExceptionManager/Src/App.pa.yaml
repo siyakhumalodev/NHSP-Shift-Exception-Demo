@@ -1,0 +1,52 @@
+App:
+  Properties:
+    StartScreen: =scrExceptionDashboard
+    OnStart: |
+      =Set(varAppName, "NHSP Shift Exception Manager");
+      Set(varDefaultTrustFilter, "All");
+      ClearCollect(colPriorityOptions, ["All", "Critical", "High", "Medium", "Low"]);
+      ClearCollect(colExceptionTypeOptions, ["All", "Unfilled Shift", "Compliance Blocker", "Urgent Staffing Request"]);
+      ClearCollect(colExceptionStatusOptions, ["All", "Open", "In Progress", "Resolved", "Closed"]);
+      ClearCollect(colTrustOptions, ["All", "Northshire NHS Trust", "Southvale NHS Trust"]);
+      ClearCollect(colRoleOptions, ["All", "Registered Nurse", "Healthcare Assistant"]);
+      ClearCollect(colComplianceOptions, ["All", "Compliant", "Training Expired", "DBS Review Required"]);
+      ClearCollect(colAvailabilityOptions, ["All", "Available", "Unavailable"]);
+      ClearCollect(colEscalationStatusOptions, ["Not Escalated", "Pending Trust Response", "Escalated"]);
+      ClearCollect(colActionStatusOptions, ["Sent", "Skipped", "Failed", "Retried", "Completed"])
+    Formulas: |
+      =ThemePrimary = ColorValue("#005EB8");
+      ThemeAccent = ColorValue("#007F3B");
+      ThemeCanvas = ColorValue("#F3F6F8");
+      ThemeText = ColorValue("#243746");
+      PriorityRank(priorityText: Text): Number = Switch(priorityText, "Critical", 1, "High", 2, "Medium", 3, "Low", 4, 9);
+      PriorityFill(priorityText: Text): Color = Switch(priorityText, "Critical", ColorValue("#B42318"), "High", ColorValue("#B54708"), "Medium", ColorValue("#B98900"), "Low", ColorValue("#027A48"), ColorValue("#667085"));
+      StatusFill(statusText: Text): Color = Switch(statusText, "Open", ColorValue("#B42318"), "In Progress", ColorValue("#B54708"), "Resolved", ColorValue("#027A48"), "Closed", ColorValue("#475467"), ColorValue("#667085"));
+      FillRatio(filledWorkers: Number, requiredWorkers: Number): Number = If(requiredWorkers <= 0, 0, Min(filledWorkers / requiredWorkers, 1));
+      IsNearStart(startTime: DateTime): Boolean = startTime >= Now() And startTime <= DateAdd(Now(), 12, TimeUnit.Hours)
+DataSources:
+  nhsp_Shifts:
+    Type: Table
+    Parameters:
+      TableLogicalName: nhsp_shift
+  nhsp_Workers:
+    Type: Table
+    Parameters:
+      TableLogicalName: nhsp_worker
+  nhsp_ShiftExceptions:
+    Type: Table
+    Parameters:
+      TableLogicalName: nhsp_shiftexception
+  nhsp_ExceptionActions:
+    Type: Table
+    Parameters:
+      TableLogicalName: nhsp_exceptionaction
+  nhsp_TrustContacts:
+    Type: Table
+    Parameters:
+      TableLogicalName: nhsp_trustcontact
+EditorState:
+  ScreensOrder:
+    - scrExceptionDashboard
+    - scrShiftOverview
+    - scrWorkerAvailability
+    - scrExceptionDetail

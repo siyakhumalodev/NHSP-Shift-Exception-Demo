@@ -1,0 +1,145 @@
+Screens:
+  scrWorkerAvailability:
+    Properties:
+      Fill: =ThemeCanvas
+    Children:
+      - navWorkerAvailability:
+          Control: Gallery
+          Variant: verticalGallery
+          Properties:
+            AccessibleLabel: ="Main navigation"
+            Items: =Table({Title:"Exceptions", Target:scrExceptionDashboard}, {Title:"Shifts", Target:scrShiftOverview}, {Title:"Workers", Target:scrWorkerAvailability})
+            X: =0
+            Y: =0
+            Width: =170
+            Height: =Parent.Height
+            Fill: =ThemePrimary
+          Children:
+            - lblWorkerNavItem:
+                Control: Label
+                Properties:
+                  Text: =ThisItem.Title
+                  Color: =Color.White
+                  FontWeight: =If(ThisItem.Target = App.ActiveScreen, FontWeight.Bold, FontWeight.Normal)
+                  OnSelect: =Navigate(ThisItem.Target, ScreenTransition.Fade)
+                  AccessibleLabel: ="Navigate to " & ThisItem.Title
+      - lblWorkerHeader:
+          Control: Label
+          Properties:
+            Text: ="Worker Availability"
+            X: =190
+            Y: =24
+            Width: =560
+            Height: =48
+            Size: =28
+            FontWeight: =FontWeight.Semibold
+            Color: =ThemeText
+      - lblWorkerUser:
+          Control: Label
+          Properties:
+            Text: =User().FullName
+            X: =Parent.Width - 330
+            Y: =28
+            Width: =300
+            Height: =40
+            Align: =Align.Right
+            Color: =ThemeText
+      - drpWorkerRole:
+          Control: Dropdown
+          Properties:
+            AccessibleLabel: ="Filter workers by role"
+            Items: =colRoleOptions
+            Default: ="All"
+            X: =190
+            Y: =96
+            Width: =210
+      - drpWorkerCompliance:
+          Control: Dropdown
+          Properties:
+            AccessibleLabel: ="Filter workers by compliance status"
+            Items: =colComplianceOptions
+            Default: ="All"
+            X: =416
+            Y: =96
+            Width: =230
+      - drpWorkerTrust:
+          Control: Dropdown
+          Properties:
+            AccessibleLabel: ="Filter workers by preferred trust"
+            Items: =colTrustOptions
+            Default: ="All"
+            X: =662
+            Y: =96
+            Width: =230
+      - galWorkers:
+          Control: Gallery
+          Variant: verticalGallery
+          Properties:
+            AccessibleLabel: ="Bank workers matching selected filters"
+            X: =190
+            Y: =152
+            Width: =Parent.Width - 220
+            Height: =Parent.Height - 180
+            TemplateSize: =112
+            Items: |
+              =SortByColumns(
+                  Filter(
+                      nhsp_Workers,
+                      drpWorkerRole.Selected.Value = "All" Or nhsp_Role.Value = drpWorkerRole.Selected.Value,
+                      drpWorkerCompliance.Selected.Value = "All" Or nhsp_ComplianceStatus.Value = drpWorkerCompliance.Selected.Value,
+                      drpWorkerTrust.Selected.Value = "All" Or nhsp_PreferredTrust.Value = drpWorkerTrust.Selected.Value
+                  ),
+                  "nhsp_fullname",
+                  SortOrder.Ascending
+              )
+          Children:
+            - conWorkerCard:
+                Control: GroupContainer
+                Variant: manualLayoutContainer
+                Properties:
+                  X: =0
+                  Y: =0
+                  Width: =Parent.TemplateWidth
+                  Height: =96
+                  Fill: =Color.White
+                Children:
+                  - lblWorkerReference:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_WorkerReference & " | " & ThisItem.nhsp_FullName & " | " & ThisItem.nhsp_Role.Value
+                        X: =20
+                        Y: =12
+                        Width: =620
+                        Height: =30
+                        FontWeight: =FontWeight.Semibold
+                        Color: =ThemeText
+                        AccessibleLabel: ="Worker " & ThisItem.nhsp_WorkerReference & ", " & ThisItem.nhsp_ComplianceStatus.Value & ", " & ThisItem.nhsp_AvailabilityStatus.Value
+                  - lblComplianceBadge:
+                      Control: Label
+                      Properties:
+                        Text: =If(ThisItem.nhsp_ComplianceStatus.Value = "Compliant", "Compliant", ThisItem.nhsp_ComplianceStatus.Value)
+                        X: =20
+                        Y: =52
+                        Width: =210
+                        Height: =28
+                        Fill: =If(ThisItem.nhsp_ComplianceStatus.Value = "Compliant", ColorValue("#D1FADF"), ColorValue("#FEF0C7"))
+                        Color: =If(ThisItem.nhsp_ComplianceStatus.Value = "Compliant", ColorValue("#027A48"), ColorValue("#B54708"))
+                  - lblAvailabilityBadge:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_AvailabilityStatus.Value
+                        X: =248
+                        Y: =52
+                        Width: =150
+                        Height: =28
+                        Fill: =If(ThisItem.nhsp_AvailabilityStatus.Value = "Available", ColorValue("#D1FADF"), ColorValue("#EAECF0"))
+                        Color: =If(ThisItem.nhsp_AvailabilityStatus.Value = "Available", ColorValue("#027A48"), ColorValue("#475467"))
+                  - lblWorkerTrust:
+                      Control: Label
+                      Properties:
+                        Text: =ThisItem.nhsp_PreferredTrust.Value
+                        X: =420
+                        Y: =52
+                        Width: =280
+                        Height: =28
+                        Color: =ThemeText
