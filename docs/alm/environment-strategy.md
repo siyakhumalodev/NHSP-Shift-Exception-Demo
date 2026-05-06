@@ -50,6 +50,7 @@ This strategy supports a realistic Power Platform delivery path for the NHSP Shi
 | `nhsp_DefaultTrustContactEmail` | Fallback escalation recipient | Synthetic address | Test mailbox | Approved contact route |
 | `nhsp_CriticalEscalationDelayMinutes` | Critical delay window | 5 | 30 | 120 or agreed operational value |
 | `nhsp_HighEscalationDelayMinutes` | High delay window | 10 | 60 | 240 or agreed operational value |
+| `nhsp_AppDeepLinkUrl` | Link included in app and flow notifications | Development app URL | Test app URL | Approved demo or pilot app URL |
 | `nhsp_EnableExternalNotifications` | Prevent accidental external messages | false | false | true only after approval |
 
 ## Security Considerations

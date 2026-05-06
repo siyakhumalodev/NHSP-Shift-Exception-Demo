@@ -16,6 +16,7 @@ var importSampleData = bool.TryParse(options.GetValueOrDefault("import-sample-da
 var samplesPath = options.GetValueOrDefault("samples-path", Path.GetFullPath(Path.Combine(System.AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples")));
 var deployFlow = bool.TryParse(options.GetValueOrDefault("deploy-flow", "false"), out var parsedDeployFlow) && parsedDeployFlow;
 var flowClientDataPath = options.GetValueOrDefault("flow-clientdata-path", Path.GetFullPath(Path.Combine(System.AppContext.BaseDirectory, "..", "..", "..", "..", "..", "powerautomate", "flows", "NHSPEscalateShiftException", "clientdata.json")));
+var deployEnvironmentVariables = bool.TryParse(options.GetValueOrDefault("deploy-environment-variables", "false"), out var parsedDeployEnvironmentVariables) && parsedDeployEnvironmentVariables;
 
 Console.WriteLine($"Target environment: {environmentUrl}");
 Console.WriteLine($"Target solution: {solutionUniqueName}");
@@ -57,6 +58,12 @@ if (deployFlow)
         "NHSP - Escalate Shift Exception",
         "Monitors synthetic Critical and High shift exceptions, notifies coordinators, rechecks after a demo delay, escalates unresolved items to demo trust contacts, and writes Exception Action audit records.",
         flowClientDataPath);
+}
+
+if (deployEnvironmentVariables)
+{
+    var environmentVariableDeployer = new EnvironmentVariableDeployer(serviceClient, solutionUniqueName);
+    environmentVariableDeployer.Deploy();
 }
 
 static Dictionary<string, string> ParseArgs(string[] args)
