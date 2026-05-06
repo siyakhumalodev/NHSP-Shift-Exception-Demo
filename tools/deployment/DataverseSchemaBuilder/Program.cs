@@ -1,4 +1,5 @@
 using System.ServiceModel;
+using System.Globalization;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.Crm.Sdk.Messages;
@@ -6,10 +7,13 @@ using Microsoft.PowerPlatform.Dataverse.Client;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
+using Microsoft.Xrm.Sdk.Query;
 
 var options = ParseArgs(args);
 var environmentUrl = options.GetValueOrDefault("environment-url", "https://org1aa19a83.crm.dynamics.com");
 var solutionUniqueName = options.GetValueOrDefault("solution-unique-name", "nhspshiftexceptiondemo");
+var importSampleData = bool.TryParse(options.GetValueOrDefault("import-sample-data", "false"), out var parsedImportSampleData) && parsedImportSampleData;
+var samplesPath = options.GetValueOrDefault("samples-path", Path.GetFullPath(Path.Combine(System.AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples")));
 
 Console.WriteLine($"Target environment: {environmentUrl}");
 Console.WriteLine($"Target solution: {solutionUniqueName}");
@@ -37,6 +41,12 @@ var schema = new SchemaBuilder(serviceClient, solutionUniqueName);
 schema.Build();
 
 Console.WriteLine("Dataverse schema build complete.");
+
+if (importSampleData)
+{
+    var importer = new SampleDataImporter(serviceClient, samplesPath);
+    importer.Import();
+}
 
 static Dictionary<string, string> ParseArgs(string[] args)
 {
@@ -365,5 +375,380 @@ internal sealed class SchemaBuilder
     private static Label Label(string text)
     {
         return new Label(text, 1033);
+    }
+}
+
+internal sealed class SampleDataImporter
+{
+    private readonly IOrganizationService service;
+    private readonly string samplesPath;
+    private readonly Guid currentUserId;
+
+    public SampleDataImporter(IOrganizationService service, string samplesPath)
+    {
+        this.service = service;
+        this.samplesPath = Path.GetFullPath(samplesPath);
+        currentUserId = ((WhoAmIResponse)service.Execute(new WhoAmIRequest())).UserId;
+    }
+
+    public void Import()
+    {
+        Console.WriteLine($"Importing synthetic sample data from: {samplesPath}");
+
+        var shifts = ImportShifts();
+        ImportWorkers();
+        ImportTrustContacts();
+        var exceptions = ImportExceptions(shifts);
+        ImportExceptionActions(exceptions);
+
+        Console.WriteLine("Synthetic sample data import complete.");
+    }
+
+    private Dictionary<string, EntityReference> ImportShifts()
+    {
+        var references = new Dictionary<string, EntityReference>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in ReadCsv("sample-shifts.csv"))
+        {
+            var shiftId = RequiredValue(row, "ShiftId");
+            var entity = new Entity("nhsp_shift")
+            {
+                ["nhsp_shiftreference"] = shiftId,
+                ["nhsp_trust"] = Choice("trust", RequiredValue(row, "Trust")),
+                ["nhsp_ward"] = RequiredValue(row, "Ward"),
+                ["nhsp_role"] = Choice("role", RequiredValue(row, "Role")),
+                ["nhsp_starttime"] = Date(RequiredValue(row, "StartTime")),
+                ["nhsp_endtime"] = Date(RequiredValue(row, "EndTime")),
+                ["nhsp_status"] = Choice("shift-status", RequiredValue(row, "Status")),
+                ["nhsp_requiredworkers"] = int.Parse(RequiredValue(row, "RequiredWorkers"), CultureInfo.InvariantCulture),
+                ["nhsp_filledworkers"] = int.Parse(RequiredValue(row, "FilledWorkers"), CultureInfo.InvariantCulture)
+            };
+
+            var reference = Save("nhsp_shift", "nhsp_shiftreference", shiftId, entity);
+            references[shiftId] = reference;
+        }
+
+        return references;
+    }
+
+    private void ImportWorkers()
+    {
+        foreach (var row in ReadCsv("sample-workers.csv"))
+        {
+            var workerId = RequiredValue(row, "WorkerId");
+            var entity = new Entity("nhsp_worker")
+            {
+                ["nhsp_workerreference"] = workerId,
+                ["nhsp_fullname"] = RequiredValue(row, "FullName"),
+                ["nhsp_role"] = Choice("role", RequiredValue(row, "Role")),
+                ["nhsp_compliancestatus"] = Choice("compliance-status", RequiredValue(row, "ComplianceStatus")),
+                ["nhsp_availabilitystatus"] = Choice("availability-status", RequiredValue(row, "AvailabilityStatus"))
+            };
+
+            var preferredTrust = Value(row, "PreferredTrust");
+            if (!string.IsNullOrWhiteSpace(preferredTrust))
+            {
+                entity["nhsp_preferredtrust"] = Choice("trust", preferredTrust);
+            }
+
+            Save("nhsp_worker", "nhsp_workerreference", workerId, entity);
+        }
+    }
+
+    private void ImportTrustContacts()
+    {
+        foreach (var row in ReadCsv("sample-trust-contacts.csv"))
+        {
+            var trustContactId = RequiredValue(row, "TrustContactId");
+            var entity = new Entity("nhsp_trustcontact")
+            {
+                ["nhsp_trustcontactreference"] = trustContactId,
+                ["nhsp_trust"] = Choice("trust", RequiredValue(row, "Trust")),
+                ["nhsp_contactname"] = RequiredValue(row, "ContactName"),
+                ["nhsp_contactrole"] = RequiredValue(row, "ContactRole"),
+                ["nhsp_contactemail"] = RequiredValue(row, "ContactEmail"),
+                ["nhsp_escalationchannel"] = Choice("escalation-channel", RequiredValue(row, "EscalationChannel")),
+                ["nhsp_isdemocontact"] = bool.Parse(RequiredValue(row, "IsDemoContact"))
+            };
+
+            Save("nhsp_trustcontact", "nhsp_trustcontactreference", trustContactId, entity);
+        }
+    }
+
+    private Dictionary<string, EntityReference> ImportExceptions(IReadOnlyDictionary<string, EntityReference> shifts)
+    {
+        var references = new Dictionary<string, EntityReference>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in ReadCsv("sample-exceptions.csv"))
+        {
+            var exceptionId = RequiredValue(row, "ExceptionId");
+            var shiftId = RequiredValue(row, "ShiftId");
+            if (!shifts.TryGetValue(shiftId, out var shiftReference))
+            {
+                throw new InvalidOperationException($"Exception {exceptionId} references missing synthetic shift {shiftId}.");
+            }
+
+            var entity = new Entity("nhsp_shiftexception")
+            {
+                ["nhsp_exceptionreference"] = exceptionId,
+                ["nhsp_shift"] = shiftReference,
+                ["nhsp_exceptiontype"] = Choice("exception-type", RequiredValue(row, "ExceptionType")),
+                ["nhsp_priority"] = Choice("priority", RequiredValue(row, "Priority")),
+                ["nhsp_status"] = Choice("exception-status", RequiredValue(row, "Status")),
+                ["nhsp_createdtime"] = Date(RequiredValue(row, "CreatedTime")),
+                ["nhsp_owner"] = new EntityReference("systemuser", currentUserId),
+                ["nhsp_escalationstatus"] = Choice("escalation-status", RequiredValue(row, "EscalationStatus"))
+            };
+
+            var reference = Save("nhsp_shiftexception", "nhsp_exceptionreference", exceptionId, entity);
+            references[exceptionId] = reference;
+        }
+
+        return references;
+    }
+
+    private void ImportExceptionActions(IReadOnlyDictionary<string, EntityReference> exceptions)
+    {
+        foreach (var row in ReadCsv("sample-exception-actions.csv"))
+        {
+            var actionId = RequiredValue(row, "ActionId");
+            var exceptionId = RequiredValue(row, "ExceptionId");
+            if (!exceptions.TryGetValue(exceptionId, out var exceptionReference))
+            {
+                throw new InvalidOperationException($"Action {actionId} references missing synthetic exception {exceptionId}.");
+            }
+
+            var entity = new Entity("nhsp_exceptionaction")
+            {
+                ["nhsp_exceptionactionreference"] = actionId,
+                ["nhsp_shiftexception"] = exceptionReference,
+                ["nhsp_actiontype"] = Choice("action-type", RequiredValue(row, "ActionType")),
+                ["nhsp_actionstatus"] = Choice("action-status", RequiredValue(row, "ActionStatus")),
+                ["nhsp_actiontime"] = Date(RequiredValue(row, "ActionTime")),
+                ["nhsp_actionby"] = RequiredValue(row, "ActionBy"),
+                ["nhsp_notes"] = Value(row, "Notes")
+            };
+
+            Save("nhsp_exceptionaction", "nhsp_exceptionactionreference", actionId, entity);
+        }
+    }
+
+    private EntityReference Save(string entityLogicalName, string keyAttributeName, string keyValue, Entity entity)
+    {
+        var existing = FindByReference(entityLogicalName, keyAttributeName, keyValue);
+        if (existing is null)
+        {
+            var id = service.Create(entity);
+            Console.WriteLine($"Created: row {entityLogicalName} {keyValue}");
+            return new EntityReference(entityLogicalName, id);
+        }
+
+        entity.Id = existing.Id;
+        service.Update(entity);
+        Console.WriteLine($"Updated: row {entityLogicalName} {keyValue}");
+        return existing.ToEntityReference();
+    }
+
+    private Entity? FindByReference(string entityLogicalName, string keyAttributeName, string keyValue)
+    {
+        var query = new QueryExpression(entityLogicalName)
+        {
+            ColumnSet = new ColumnSet(keyAttributeName),
+            TopCount = 1
+        };
+        query.Criteria.AddCondition(keyAttributeName, ConditionOperator.Equal, keyValue);
+
+        return service.RetrieveMultiple(query).Entities.FirstOrDefault();
+    }
+
+    private IEnumerable<Dictionary<string, string>> ReadCsv(string fileName)
+    {
+        var path = Path.Combine(samplesPath, fileName);
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException($"Sample data file not found: {path}", path);
+        }
+
+        using var reader = new StreamReader(path);
+        var headerLine = reader.ReadLine();
+        if (string.IsNullOrWhiteSpace(headerLine))
+        {
+            yield break;
+        }
+
+        var headers = ParseCsvLine(headerLine).ToArray();
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            var values = ParseCsvLine(line).ToArray();
+            var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (var index = 0; index < headers.Length; index++)
+            {
+                row[headers[index]] = index < values.Length ? values[index] : string.Empty;
+            }
+
+            yield return row;
+        }
+    }
+
+    private static IEnumerable<string> ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var current = new System.Text.StringBuilder();
+        var inQuotes = false;
+
+        for (var index = 0; index < line.Length; index++)
+        {
+            var character = line[index];
+            if (character == '"')
+            {
+                if (inQuotes && index + 1 < line.Length && line[index + 1] == '"')
+                {
+                    current.Append('"');
+                    index++;
+                    continue;
+                }
+
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (character == ',' && !inQuotes)
+            {
+                values.Add(current.ToString().Trim());
+                current.Clear();
+                continue;
+            }
+
+            current.Append(character);
+        }
+
+        values.Add(current.ToString().Trim());
+        return values;
+    }
+
+    private static string RequiredValue(IReadOnlyDictionary<string, string> row, string key)
+    {
+        var value = Value(row, key);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException($"Required sample data column '{key}' is missing or empty.");
+        }
+
+        return value;
+    }
+
+    private static string Value(IReadOnlyDictionary<string, string> row, string key)
+    {
+        return row.TryGetValue(key, out var value) ? value : string.Empty;
+    }
+
+    private static DateTime Date(string value)
+    {
+        return DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal);
+    }
+
+    private static OptionSetValue Choice(string optionSet, string label)
+    {
+        var value = optionSet switch
+        {
+            "trust" => label switch
+            {
+                "Northshire NHS Trust" => 100000000,
+                "Southvale NHS Trust" => 100000001,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "role" => label switch
+            {
+                "Registered Nurse" => 100000000,
+                "Healthcare Assistant" => 100000001,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "shift-status" => label switch
+            {
+                "Open" => 100000000,
+                "Filled" => 100000001,
+                "Cancelled" => 100000002,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "compliance-status" => label switch
+            {
+                "Compliant" => 100000000,
+                "Training Expired" => 100000001,
+                "DBS Review Required" => 100000002,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "availability-status" => label switch
+            {
+                "Available" => 100000000,
+                "Unavailable" => 100000001,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "exception-type" => label switch
+            {
+                "Unfilled Shift" => 100000000,
+                "Compliance Blocker" => 100000001,
+                "Urgent Staffing Request" => 100000002,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "priority" => label switch
+            {
+                "Critical" => 100000000,
+                "High" => 100000001,
+                "Medium" => 100000002,
+                "Low" => 100000003,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "exception-status" => label switch
+            {
+                "Open" => 100000000,
+                "In Progress" => 100000001,
+                "Resolved" => 100000002,
+                "Closed" => 100000003,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "escalation-status" => label switch
+            {
+                "Not Escalated" => 100000000,
+                "Pending Trust Response" => 100000001,
+                "Escalated" => 100000002,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "action-type" => label switch
+            {
+                "Coordinator Notification" => 100000000,
+                "Trust Escalation" => 100000001,
+                "Flow Error" => 100000002,
+                "Manual Update" => 100000003,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "action-status" => label switch
+            {
+                "Sent" => 100000000,
+                "Skipped" => 100000001,
+                "Failed" => 100000002,
+                "Retried" => 100000003,
+                "Completed" => 100000004,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            "escalation-channel" => label switch
+            {
+                "Email" => 100000000,
+                "Teams" => 100000001,
+                "Manual" => 100000002,
+                _ => throw UnknownChoice(optionSet, label)
+            },
+            _ => throw new InvalidOperationException($"Unknown option set mapping '{optionSet}'.")
+        };
+
+        return new OptionSetValue(value);
+    }
+
+    private static InvalidOperationException UnknownChoice(string optionSet, string label)
+    {
+        return new InvalidOperationException($"Unknown choice label '{label}' for option set '{optionSet}'.");
     }
 }
