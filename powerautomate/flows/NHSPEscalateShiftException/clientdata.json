@@ -1,0 +1,498 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {},
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": {},
+        "api": {
+          "name": "shared_office365"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_shift_exception_is_added_or_modified": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger"
+            },
+            "parameters": {
+              "message": 4,
+              "entityname": "nhsp_shiftexceptions",
+              "scope": 4,
+              "filteringattributes": "nhsp_priority,nhsp_status,nhsp_escalationstatus,nhsp_shift,nhsp_owner,nhsp_resolutionnotes,nhsp_resolvedtime",
+              "filterexpression": "nhsp_status ne 100000002 and nhsp_status ne 100000003 and nhsp_escalationstatus ne 100000002 and (nhsp_priority eq 100000000 or nhsp_priority eq 100000001)"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Scope_Main_Processing": {
+          "type": "Scope",
+          "runAfter": {},
+          "actions": {
+            "Get_related_shift": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem"
+                },
+                "parameters": {
+                  "entityName": "nhsp_shifts",
+                  "recordId": "@triggerOutputs()?['body/_nhsp_shift_value']",
+                  "$select": "nhsp_shiftreference,nhsp_trust,nhsp_ward,nhsp_role,nhsp_starttime,nhsp_endtime,nhsp_requiredworkers,nhsp_filledworkers,nhsp_status"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Get_exception_owner": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Get_related_shift": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem"
+                },
+                "parameters": {
+                  "entityName": "systemusers",
+                  "recordId": "@triggerOutputs()?['body/_nhsp_owner_value']",
+                  "$select": "fullname,internalemailaddress"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Shift_starts_within_24_hours": {
+              "type": "If",
+              "runAfter": {
+                "Get_exception_owner": [
+                  "Succeeded"
+                ]
+              },
+              "expression": {
+                "and": [
+                  {
+                    "greaterOrEquals": [
+                      "@outputs('Get_related_shift')?['body/nhsp_starttime']",
+                      "@utcNow()"
+                    ]
+                  },
+                  {
+                    "lessOrEquals": [
+                      "@outputs('Get_related_shift')?['body/nhsp_starttime']",
+                      "@addHours(utcNow(), 24)"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Notify_coordinator": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                      "connectionName": "shared_office365",
+                      "operationId": "SendEmailV2"
+                    },
+                    "parameters": {
+                      "emailMessage/To": "@outputs('Get_exception_owner')?['body/internalemailaddress']",
+                      "emailMessage/Subject": "Urgent shift exception: @{triggerOutputs()?['body/nhsp_exceptionreference']}",
+                      "emailMessage/Body": "<p>A high-priority shift exception needs review.</p><p><strong>Exception ID:</strong> @{triggerOutputs()?['body/nhsp_exceptionreference']}<br/><strong>Priority:</strong> @{triggerOutputs()?['body/nhsp_priority@OData.Community.Display.V1.FormattedValue']}<br/><strong>Type:</strong> @{triggerOutputs()?['body/nhsp_exceptiontype@OData.Community.Display.V1.FormattedValue']}<br/><strong>Ward:</strong> @{outputs('Get_related_shift')?['body/nhsp_ward']}<br/><strong>Shift start:</strong> @{outputs('Get_related_shift')?['body/nhsp_starttime']}<br/><strong>Fill status:</strong> @{outputs('Get_related_shift')?['body/nhsp_filledworkers']} of @{outputs('Get_related_shift')?['body/nhsp_requiredworkers']} filled</p><p>Please review the exception in the NHSP Shift Exception Manager app and update the status or resolution notes.</p>",
+                      "emailMessage/Importance": "High"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Audit_coordinator_notification": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Notify_coordinator": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord"
+                    },
+                    "parameters": {
+                      "entityName": "nhsp_exceptionactions",
+                      "item": {
+                        "nhsp_exceptionactionreference": "@concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'), '-COORD')",
+                        "nhsp_ShiftException@odata.bind": "@concat('/nhsp_shiftexceptions(', triggerOutputs()?['body/nhsp_shiftexceptionid'], ')')",
+                        "nhsp_actiontype": 100000000,
+                        "nhsp_actionstatus": 100000000,
+                        "nhsp_actiontime": "@utcNow()",
+                        "nhsp_actionby": "Power Automate - NHSP Escalation Flow",
+                        "nhsp_notes": "Coordinator notification sent for urgent shift exception using synthetic demo-safe operational context."
+                      }
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Mark_pending_trust_response": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Audit_coordinator_notification": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateOnlyRecord"
+                    },
+                    "parameters": {
+                      "entityName": "nhsp_shiftexceptions",
+                      "recordId": "@triggerOutputs()?['body/nhsp_shiftexceptionid']",
+                      "item": {
+                        "nhsp_escalationstatus": 100000001
+                      }
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Delay_before_recheck": {
+                  "type": "Wait",
+                  "runAfter": {
+                    "Mark_pending_trust_response": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "interval": {
+                      "count": "@if(equals(triggerOutputs()?['body/nhsp_priority'], 100000000), 5, 10)",
+                      "unit": "Minute"
+                    }
+                  }
+                },
+                "Recheck_shift_exception": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Delay_before_recheck": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "GetItem"
+                    },
+                    "parameters": {
+                      "entityName": "nhsp_shiftexceptions",
+                      "recordId": "@triggerOutputs()?['body/nhsp_shiftexceptionid']",
+                      "$select": "nhsp_exceptionreference,nhsp_status,nhsp_escalationstatus,nhsp_resolutionnotes,nhsp_resolvedtime"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Exception_still_unresolved": {
+                  "type": "If",
+                  "runAfter": {
+                    "Recheck_shift_exception": [
+                      "Succeeded"
+                    ]
+                  },
+                  "expression": {
+                    "not": {
+                      "or": [
+                        {
+                          "equals": [
+                            "@outputs('Recheck_shift_exception')?['body/nhsp_status']",
+                            100000002
+                          ]
+                        },
+                        {
+                          "equals": [
+                            "@outputs('Recheck_shift_exception')?['body/nhsp_status']",
+                            100000003
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "actions": {
+                    "List_demo_trust_contacts": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "inputs": {
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "ListRecords"
+                        },
+                        "parameters": {
+                          "entityName": "nhsp_trustcontacts",
+                          "$select": "nhsp_contactname,nhsp_contactemail,nhsp_trust,nhsp_isdemocontact",
+                          "$filter": "@concat('nhsp_trust eq ', outputs('Get_related_shift')?['body/nhsp_trust'], ' and nhsp_isdemocontact eq true')",
+                          "$top": 1
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "Demo_trust_contact_found": {
+                      "type": "If",
+                      "runAfter": {
+                        "List_demo_trust_contacts": [
+                          "Succeeded"
+                        ]
+                      },
+                      "expression": {
+                        "greater": [
+                          "@length(outputs('List_demo_trust_contacts')?['body/value'])",
+                          0
+                        ]
+                      },
+                      "actions": {
+                        "Notify_trust_contact": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {},
+                          "inputs": {
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                              "connectionName": "shared_office365",
+                              "operationId": "SendEmailV2"
+                            },
+                            "parameters": {
+                              "emailMessage/To": "@first(outputs('List_demo_trust_contacts')?['body/value'])?['nhsp_contactemail']",
+                              "emailMessage/Subject": "Escalation required: unresolved shift exception @{triggerOutputs()?['body/nhsp_exceptionreference']}",
+                              "emailMessage/Body": "<p>An urgent shift exception remains unresolved and requires trust review.</p><p><strong>Exception ID:</strong> @{triggerOutputs()?['body/nhsp_exceptionreference']}<br/><strong>Priority:</strong> @{triggerOutputs()?['body/nhsp_priority@OData.Community.Display.V1.FormattedValue']}<br/><strong>Status:</strong> @{outputs('Recheck_shift_exception')?['body/nhsp_status@OData.Community.Display.V1.FormattedValue']}<br/><strong>Ward:</strong> @{outputs('Get_related_shift')?['body/nhsp_ward']}<br/><strong>Shift start:</strong> @{outputs('Get_related_shift')?['body/nhsp_starttime']}</p><p>Please review available workforce cover options and respond through the agreed operational escalation route.</p>",
+                              "emailMessage/Importance": "High"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          }
+                        },
+                        "Audit_trust_escalation": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {
+                            "Notify_trust_contact": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "CreateRecord"
+                            },
+                            "parameters": {
+                              "entityName": "nhsp_exceptionactions",
+                              "item": {
+                                "nhsp_exceptionactionreference": "@concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'), '-TRUST')",
+                                "nhsp_ShiftException@odata.bind": "@concat('/nhsp_shiftexceptions(', triggerOutputs()?['body/nhsp_shiftexceptionid'], ')')",
+                                "nhsp_actiontype": 100000001,
+                                "nhsp_actionstatus": 100000000,
+                                "nhsp_actiontime": "@utcNow()",
+                                "nhsp_actionby": "Power Automate - NHSP Escalation Flow",
+                                "nhsp_notes": "Trust escalation sent because the exception remained unresolved after the delay window."
+                              }
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          }
+                        },
+                        "Mark_escalated": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {
+                            "Audit_trust_escalation": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateOnlyRecord"
+                            },
+                            "parameters": {
+                              "entityName": "nhsp_shiftexceptions",
+                              "recordId": "@triggerOutputs()?['body/nhsp_shiftexceptionid']",
+                              "item": {
+                                "nhsp_escalationstatus": 100000002
+                              }
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Audit_missing_trust_contact": {
+                            "type": "OpenApiConnection",
+                            "runAfter": {},
+                            "inputs": {
+                              "host": {
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "CreateRecord"
+                              },
+                              "parameters": {
+                                "entityName": "nhsp_exceptionactions",
+                                "item": {
+                                  "nhsp_exceptionactionreference": "@concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'), '-ERR')",
+                                  "nhsp_ShiftException@odata.bind": "@concat('/nhsp_shiftexceptions(', triggerOutputs()?['body/nhsp_shiftexceptionid'], ')')",
+                                  "nhsp_actiontype": 100000002,
+                                  "nhsp_actionstatus": 100000002,
+                                  "nhsp_actiontime": "@utcNow()",
+                                  "nhsp_actionby": "Power Automate - NHSP Escalation Flow",
+                                  "nhsp_notes": "No synthetic demo trust contact was configured for this shift trust. External escalation was not sent."
+                                }
+                              },
+                              "authentication": "@parameters('$authentication')"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Audit_trust_escalation_skipped": {
+                        "type": "OpenApiConnection",
+                        "runAfter": {},
+                        "inputs": {
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "CreateRecord"
+                          },
+                          "parameters": {
+                            "entityName": "nhsp_exceptionactions",
+                            "item": {
+                              "nhsp_exceptionactionreference": "@concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'), '-SKIP')",
+                              "nhsp_ShiftException@odata.bind": "@concat('/nhsp_shiftexceptions(', triggerOutputs()?['body/nhsp_shiftexceptionid'], ')')",
+                              "nhsp_actiontype": 100000001,
+                              "nhsp_actionstatus": 100000001,
+                              "nhsp_actiontime": "@utcNow()",
+                              "nhsp_actionby": "Power Automate - NHSP Escalation Flow",
+                              "nhsp_notes": "Trust escalation skipped because the exception was resolved or closed before the delay completed."
+                            }
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Audit_shift_timing_skipped": {
+                    "type": "OpenApiConnection",
+                    "runAfter": {},
+                    "inputs": {
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "CreateRecord"
+                      },
+                      "parameters": {
+                        "entityName": "nhsp_exceptionactions",
+                        "item": {
+                          "nhsp_exceptionactionreference": "@concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'), '-TIME')",
+                          "nhsp_ShiftException@odata.bind": "@concat('/nhsp_shiftexceptions(', triggerOutputs()?['body/nhsp_shiftexceptionid'], ')')",
+                          "nhsp_actiontype": 100000000,
+                          "nhsp_actionstatus": 100000001,
+                          "nhsp_actiontime": "@utcNow()",
+                          "nhsp_actionby": "Power Automate - NHSP Escalation Flow",
+                          "nhsp_notes": "Skipped escalation monitoring because the related shift does not start within 24 hours."
+                        }
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Scope_Error_Handling": {
+          "type": "Scope",
+          "runAfter": {
+            "Scope_Main_Processing": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "actions": {
+            "Audit_flow_failure": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord"
+                },
+                "parameters": {
+                  "entityName": "nhsp_exceptionactions",
+                  "item": {
+                    "nhsp_exceptionactionreference": "@concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'), '-FAIL')",
+                    "nhsp_ShiftException@odata.bind": "@concat('/nhsp_shiftexceptions(', triggerOutputs()?['body/nhsp_shiftexceptionid'], ')')",
+                    "nhsp_actiontype": 100000002,
+                    "nhsp_actionstatus": 100000002,
+                    "nhsp_actiontime": "@utcNow()",
+                    "nhsp_actionby": "Power Automate - NHSP Escalation Flow",
+                    "nhsp_notes": "Flow failed while processing the shift exception. Review flow run history for details."
+                  }
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Terminate_failed": {
+              "type": "Terminate",
+              "runAfter": {
+                "Audit_flow_failure": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "NHSP_ESCALATION_FLOW_FAILED",
+                  "message": "The NHSP shift exception escalation flow failed. Review the flow run history and Exception Action audit records."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -14,6 +14,8 @@ var environmentUrl = options.GetValueOrDefault("environment-url", "https://org1a
 var solutionUniqueName = options.GetValueOrDefault("solution-unique-name", "nhspshiftexceptiondemo");
 var importSampleData = bool.TryParse(options.GetValueOrDefault("import-sample-data", "false"), out var parsedImportSampleData) && parsedImportSampleData;
 var samplesPath = options.GetValueOrDefault("samples-path", Path.GetFullPath(Path.Combine(System.AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples")));
+var deployFlow = bool.TryParse(options.GetValueOrDefault("deploy-flow", "false"), out var parsedDeployFlow) && parsedDeployFlow;
+var flowClientDataPath = options.GetValueOrDefault("flow-clientdata-path", Path.GetFullPath(Path.Combine(System.AppContext.BaseDirectory, "..", "..", "..", "..", "..", "powerautomate", "flows", "NHSPEscalateShiftException", "clientdata.json")));
 
 Console.WriteLine($"Target environment: {environmentUrl}");
 Console.WriteLine($"Target solution: {solutionUniqueName}");
@@ -46,6 +48,15 @@ if (importSampleData)
 {
     var importer = new SampleDataImporter(serviceClient, samplesPath);
     importer.Import();
+}
+
+if (deployFlow)
+{
+    var flowDeployer = new CloudFlowDeployer(serviceClient, solutionUniqueName);
+    flowDeployer.Deploy(
+        "NHSP - Escalate Shift Exception",
+        "Monitors synthetic Critical and High shift exceptions, notifies coordinators, rechecks after a demo delay, escalates unresolved items to demo trust contacts, and writes Exception Action audit records.",
+        flowClientDataPath);
 }
 
 static Dictionary<string, string> ParseArgs(string[] args)

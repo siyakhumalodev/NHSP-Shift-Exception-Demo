@@ -43,7 +43,7 @@ The prompt requires an audit record to be written to **Exception Action**. This 
 
 | Column | Display Name | Type | Required | Notes |
 | --- | --- | --- | --- | --- |
-| `nhsp_ExceptionActionId` | Exception Action ID | Text (Primary Name) | Yes | Business key, e.g. `ACT-4001` |
+| `nhsp_ExceptionActionReference` | Exception Action ID | Text (Primary Name) | Yes | Business key, e.g. `ACT-4001` |
 | `nhsp_ShiftException` | Shift Exception | Lookup to `nhsp_ShiftException` | Yes | Exception this action relates to |
 | `nhsp_ActionType` | Action Type | Choice | Yes | Coordinator Notification, Trust Escalation, Flow Error |
 | `nhsp_ActionStatus` | Action Status | Choice | Yes | Sent, Skipped, Failed, Retried |
@@ -186,7 +186,7 @@ Use a trigger condition to reduce unnecessary flow runs. Adjust choice values to
 | Action | Dataverse: Get a row by ID |
 | Table | `nhsp_Shift` |
 | Row ID | Shift lookup from trigger row |
-| Columns | `nhsp_shiftid,nhsp_trust,nhsp_ward,nhsp_role,nhsp_starttime,nhsp_endtime,nhsp_requiredworkers,nhsp_filledworkers,nhsp_status` |
+| Columns | `nhsp_shiftreference,nhsp_trust,nhsp_ward,nhsp_role,nhsp_starttime,nhsp_endtime,nhsp_requiredworkers,nhsp_filledworkers,nhsp_status` |
 
 ### Update Shift Exception To Pending Trust Response
 
@@ -210,7 +210,7 @@ Use a trigger condition to reduce unnecessary flow runs. Adjust choice values to
 
 | Field | Example Value |
 | --- | --- |
-| `nhsp_ExceptionActionId` | `concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'))` |
+| `nhsp_ExceptionActionReference` | `concat('ACT-', formatDateTime(utcNow(), 'yyyyMMddHHmmss'))` |
 | `nhsp_ShiftException` | Trigger row lookup |
 | `nhsp_ActionType` | `Coordinator Notification`, `Trust Escalation`, or `Flow Error` |
 | `nhsp_ActionStatus` | `Sent`, `Skipped`, `Failed`, or `Retried` |
@@ -229,7 +229,7 @@ Use a trigger condition to reduce unnecessary flow runs. Adjust choice values to
 **Subject:**
 
 ```text
-Urgent shift exception: @{triggerOutputs()?['body/nhsp_exceptionid']}
+Urgent shift exception: @{triggerOutputs()?['body/nhsp_exceptionreference']}
 ```
 
 **Body:**
@@ -237,7 +237,7 @@ Urgent shift exception: @{triggerOutputs()?['body/nhsp_exceptionid']}
 ```text
 A high-priority shift exception needs review.
 
-Exception ID: @{triggerOutputs()?['body/nhsp_exceptionid']}
+Exception ID: @{triggerOutputs()?['body/nhsp_exceptionreference']}
 Priority: @{triggerOutputs()?['body/nhsp_priority@OData.Community.Display.V1.FormattedValue']}
 Type: @{triggerOutputs()?['body/nhsp_exceptiontype@OData.Community.Display.V1.FormattedValue']}
 Trust: @{outputs('Get_related_shift')?['body/nhsp_trust@OData.Community.Display.V1.FormattedValue']}
@@ -258,7 +258,7 @@ For the demo, store trust contact routing in environment variables or a small Da
 **Subject:**
 
 ```text
-Escalation required: unresolved shift exception @{triggerOutputs()?['body/nhsp_exceptionid']}
+Escalation required: unresolved shift exception @{triggerOutputs()?['body/nhsp_exceptionreference']}
 ```
 
 **Body:**
@@ -266,7 +266,7 @@ Escalation required: unresolved shift exception @{triggerOutputs()?['body/nhsp_e
 ```text
 An urgent shift exception remains unresolved and requires trust review.
 
-Exception ID: @{triggerOutputs()?['body/nhsp_exceptionid']}
+Exception ID: @{triggerOutputs()?['body/nhsp_exceptionreference']}
 Priority: @{triggerOutputs()?['body/nhsp_priority@OData.Community.Display.V1.FormattedValue']}
 Status: @{outputs('Recheck_shift_exception')?['body/nhsp_status@OData.Community.Display.V1.FormattedValue']}
 Trust: @{outputs('Get_related_shift')?['body/nhsp_trust@OData.Community.Display.V1.FormattedValue']}
@@ -325,7 +325,7 @@ Power Automate failure: NHSP shift exception escalation
 ```text
 The escalation flow failed while processing a shift exception.
 
-Exception ID: @{triggerOutputs()?['body/nhsp_exceptionid']}
+Exception ID: @{triggerOutputs()?['body/nhsp_exceptionreference']}
 Flow run: @{workflow()?['run']['name']}
 Failure time: @{utcNow()}
 
